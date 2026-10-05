@@ -96,7 +96,7 @@ async def monitor(events: queue.Queue, stopEvent: threading.Event) -> None:
                             "updated": updated, "age": age}))
         except (OSError, RuntimeError) as error:
             logging.warning("Media session unavailable: %s", type(error).__name__)
-            events.put(("error", "無法讀取 Spotify，請確認桌面版已開啟並播放歌曲。"))
+            events.put(("error", "Unable to read Spotify. Open the desktop app and play a song."))
         await asyncio.sleep(0.5)
 
 
@@ -105,7 +105,7 @@ class LyricsWindow:
 
     def __init__(self) -> None:
         self.root = tk.Tk()
-        self.root.title("SpotifySurface 免 Token 歌詞")
+        self.root.title("SpotifySurface Local")
         self.root.geometry("620x330")
         self.root.configure(bg="#161616")
         self.root.attributes("-topmost", True)
@@ -123,33 +123,33 @@ class LyricsWindow:
         self.lines: list[tuple[float, str]] = []
         self.timestamps: list[float] = []
         self.settings = tk.Toplevel(self.root)
-        self.settings.title("歌詞設定")
+        self.settings.title("Lyrics Settings")
         self.settings.geometry("420x390")
         self.settings.configure(bg="#161616")
         self.settings.attributes("-topmost", True)
         self.settings.withdraw()
         self.settings.protocol("WM_DELETE_WINDOW", self.settings.withdraw)
-        self.title = tk.Label(self.settings, text="請在 Spotify 桌面版播放歌曲", fg="#1ed760", bg="#161616", font=("Microsoft JhengHei", 15), wraplength=390)
+        self.title = tk.Label(self.settings, text="Play a song in Spotify desktop", fg="#1ed760", bg="#161616", font=("Microsoft JhengHei", 15), wraplength=390)
         self.title.pack(pady=15)
-        self.status = tk.Label(self.settings, text="正在連接目前已登入的 Spotify…", fg="#aaaaaa", bg="#161616", wraplength=390)
+        self.status = tk.Label(self.settings, text="Connecting to Spotify…", fg="#aaaaaa", bg="#161616", wraplength=390)
         self.status.pack()
         self.transparentBackground = tk.BooleanVar(value=True)
-        tk.Checkbutton(self.settings, text="透明背景（取消勾選顯示黑底）", variable=self.transparentBackground,
+        tk.Checkbutton(self.settings, text="Transparent background (off: dark background)", variable=self.transparentBackground,
                        command=self.applyBackground, bg="#161616", fg="white", selectcolor="#252525",
                        activebackground="#161616", activeforeground="white").pack(pady=8)
         self.lyricFont = tkFont.Font(family="Microsoft JhengHei", size=40, weight="bold")
-        self.current = tk.Label(self.root, text="等待播放", fg="white", bg="#161616", font=self.lyricFont)
+        self.current = tk.Label(self.root, text="Waiting for playback", fg="white", bg="#161616", font=self.lyricFont)
         self.offset = tk.DoubleVar(value=0)
         tk.Scale(self.settings, from_=-5, to=5, resolution=0.1, orient="horizontal", variable=self.offset,
-                 label="字幕時間微調（秒）", bg="#161616", fg="white", highlightthickness=0).pack(fill="x", padx=20)
+                 label="Lyrics timing offset (seconds)", bg="#161616", fg="white", highlightthickness=0).pack(fill="x", padx=20)
         self.root.update_idletasks()
-        for label, dimension, initial, minimum, maximum in [("字幕寬度", "width", 620, 250, 1600), ("字幕高度", "height", 330, 80, 600)]:
+        for label, dimension, initial, minimum, maximum in [("Overlay width", "width", 620, 250, 1600), ("Overlay height", "height", 330, 80, 600)]:
             scale = tk.Scale(self.settings, from_=minimum, to=maximum, orient="horizontal", label=label,
                              bg="#161616", fg="white", highlightthickness=0,
                              command=lambda value, dimension=dimension: self.resizeWindow(dimension, value))
             scale.set(initial)
             scale.pack(fill="x", padx=20)
-        tk.Button(self.settings, text="關閉程式", command=self.close).pack(pady=10)
+        tk.Button(self.settings, text="Quit", command=self.close).pack(pady=10)
         self.current.place(x=15, y=30, relwidth=1, width=-30, relheight=1, height=-40)
         self.menuButton = tk.Button(self.root, text="⋯", font=("Segoe UI", 12),
                                     fg="#cccccc", bg="#252525", activebackground="#444444",
@@ -251,7 +251,7 @@ class LyricsWindow:
             elif event == "track":
                 self.track = data
                 if data is None:
-                    self.status.config(text="等待 Spotify 桌面版播放歌曲")
+                    self.status.config(text="Waiting for Spotify desktop playback")
                     continue
                 key = (data["title"], data["artist"], data["album"])
                 self.clock.accept(data, reset=key != self.trackKey)
@@ -259,8 +259,8 @@ class LyricsWindow:
                     self.trackKey = key
                     self.lines, self.timestamps = [], []
                     self.title.config(text=f'{data["title"]} · {data["artist"]}')
-                    self.status.config(text="正在查詢歌詞…")
-                    self.showLyric("載入中…")
+                    self.status.config(text="Searching for lyrics…")
+                    self.showLyric("Loading…")
                     self.executor.submit(self.loadLyrics, key, dict(data))
             elif event == "lyrics":
                 key, body = data
@@ -269,12 +269,12 @@ class LyricsWindow:
                 self.lines = parseLyrics(body.get("syncedLyrics") or "")
                 self.timestamps = [line[0] for line in self.lines]
                 if self.lines:
-                    self.status.config(text="同步歌詞 · LRCLIB")
+                    self.status.config(text="Synced lyrics · LRCLIB")
                 else:
-                    message = "歌詞服務連線失敗，請切歌後重試" if body.get("error") else "此歌曲暫無同步歌詞"
+                    message = "Lyrics connection failed. Switch tracks to retry." if body.get("error") else "No synced lyrics available for this track"
                     self.status.config(text=message)
-                    plain = body.get("plainLyrics") or ("純音樂" if body.get("instrumental") else "找不到可用歌詞")
-                    self.showLyric(plain.splitlines()[0] if plain.splitlines() else "找不到可用歌詞")
+                    plain = body.get("plainLyrics") or ("Instrumental" if body.get("instrumental") else "No lyrics found")
+                    self.showLyric(plain.splitlines()[0] if plain.splitlines() else "No lyrics found")
         if self.track and self.lines:
             position = self.clock.currentPosition(time.monotonic())
             index = bisect.bisect_right(self.timestamps, position + self.offset.get()) - 1

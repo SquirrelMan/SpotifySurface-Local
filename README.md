@@ -28,6 +28,8 @@ The token-free entry point is `spotify-surface-local.py`. The original `main.py`
 
 ## Usage
 
+The settings interface and app status messages are in English. Lyrics remain in their original language.
+
 Download the standalone Windows EXE from the [latest release](https://github.com/SquirrelMan/SpotifySurface-Local/releases/latest).
 
 1. Open Spotify desktop on Windows and play a song.
