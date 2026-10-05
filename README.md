@@ -1,128 +1,89 @@
-<br>
-<div align="center">
-  <img src="https://i.imgur.com/qvdqtsc.png" alt="Logo" width="150" height="150">
+# SpotifySurface Local
 
-  <h3 align="center">Spotify Surface</h3>
+A token-free, always-on-top, single-line lyrics window for the Spotify desktop app on Windows. Follow the lyrics while working or browsing, with text that automatically grows to fit the window.
 
-  <p align="center">
-    A minimalistic window with lyrics synced to Spotify<br>on the surface of your screen
-    <br>
-    <br>
-    <a href="#usage-and-features">Usage and Features</a>
-    ·
-    <a href="https://github.com/PureAspiration/SpotifySurface/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/PureAspiration/SpotifySurface/issues">Request Feature</a>
-  </p>
-</div>
+## Origin and upstream tracking
 
----
+This project is based on [PureAspiration/SpotifySurface](https://github.com/PureAspiration/SpotifySurface), starting from commit `a4195b976cbb852f5ea9d194d5466d1b1f20229f`. Credit for the original project goes to **PureAspiration**. The original source, Git history, and MIT license are retained. See [the original README](README-upstream.md).
 
-<!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li><a href="#about">About</a></li>
-    <li><a href="#usage-and-features">Usage and Features</a></li>
-    <li><a href="#installationdownloading">Installation/Downloading</a></li>
-    <li>
-      <a href="#setup">Setup</a>
-      <ul>
-        <li><a href="#tokens-and-environment-variables">Tokens and Environment Variables</a></li>
-        <li><a href="#spotify-tokens">Spotify Tokens</a></li>
-        <li><a href="#musixmatch-token">Musixmatch Token</a></li>
-      </ul>
-    </li>
-    <li><a href="#acknowledgments-and-credits">Acknowledgments and Credits</a></li>
-    <li><a href="#developer">Developer</a></li>
-    <li><a href="#license">License</a></li>
-  </ol>
-</details>
+This is an independent adaptation, not an official upstream release. Upstream changes can be reviewed and merged manually; updates are not synchronized automatically.
 
----
+## Main use case
 
-## About
-A minimalistic window that shows you the current song playing on Spotify with synced lyrics.<br>
-The application is non-distracting with all the information you need about the song you are listening to.
-This window is pinned to the top of the screen for all your lyrics needs.
-<br>
+Show the current lyric line over other desktop windows while listening to Spotify. The local version connects to the already signed-in Spotify desktop app through Windows media sessions. No Spotify API credentials, Musixmatch token, or additional sign-in is required.
 
-## Usage and Features
-<strong>Synced Lyrics</strong><br>
-Lyrics are shown at the center of the interface, with a following rectangle.<br>
-<img src="https://i.imgur.com/3fp5ObV.gif" alt="Synced Lyrics Demo" height=200>
+## Changes in this version
 
-<strong>Automatic Lyric Scrolling</strong><br>
-The lyrics scroll down automatically.<br>
-But what if you want to read the lyrics? Then just scroll.<br>
-Once you're done, just click the follow button, and the lyrics will scroll automatically once again.<br>
-<img src="https://i.imgur.com/sSYJV18.gif" alt="Automatic Lyric Scrolling Demo" height=200>
+| Area | Local version |
+| --- | --- |
+| Spotify connection | Reads track metadata, playback position, and pause state through Windows media sessions instead of Spotify API tokens. |
+| Lyrics provider | Fetches lyrics from [LRCLIB](https://lrclib.net), without a Musixmatch token. |
+| Display | Shows only the current lyric line, with the largest font that fits the available width and height. |
+| Subtitle jumping | Keeps a playback clock anchored across repeated Windows timeline snapshots, rather than resetting progress on every poll. Small timing corrections are ignored; larger changes follow seeks. |
+| Track switching | Associates lyric responses with the requested track so delayed results do not overwrite a different song. |
+| Timing adjustment | Provides a manual offset from -5 to +5 seconds. |
+| Distribution | Can be packaged as a standalone Windows EXE using PyInstaller. |
 
-<strong>Live Lyrics Fetching</strong><br>
-The application searches for lyrics immediately after you change songs on Spotify.<br>
-<img src="https://i.imgur.com/f0GOJy4.gif" alt="Logo" height=200>
+The token-free entry point is `spotify-surface-local.py`. The original `main.py` is retained for reference and still requires the original token setup.
 
-<strong>Quick Access Controls *</strong><br>
-With the quick access controls, you can play/pause, skip, return, shuffle, and repeat songs with the click of a singular button.<br>
-&ast; Note that some of these functions require Spotify Premium to work. If you do not have Spotify Premium, the play/pause, skip, and return buttons will attempt to skip directly from the device. This function will only work on Windows machines.<br>
-<img src="https://i.imgur.com/3fp5ObV.gif" alt="Quick Access Controls Demo" height=200>
+## Usage
 
-<strong>Window Dragging, Resize, and Alignment Lock</strong><br>
-The window can be dragged and resized like a normal window, but when dragging the window near the side of the screen, the window locks and aligns to the side or at the taskbar.<br>
-<img src="https://i.imgur.com/i6Pao1A.gif" alt="Window Dragging and Alignment Lock Demo" height=200>
+1. Open Spotify desktop on Windows and play a song.
+2. Run `SpotifySurface.exe`.
+3. Resize the window to enlarge the lyric text. Adjust the timing slider if the lyrics are consistently early or late.
 
-<br><br>
+The window stays on top. Running the packaged EXE does not require Python or conda.
 
----
+## Install from source
 
-## Installation/Downloading
-* Clone or download this repo
-* Install the required dependencies with pip command:
-```pip install -r requirements.txt```
-<br>
+Tested with 64-bit Windows and Python 3.10. The original dependency versions are retained for compatibility.
 
-## Setup
-
-#### Tokens and Environment Variables
-The following 3 tokens can be put into an environment variable.
-
-To do this, create a file named `.env` in your folder containing the `main.py` file.
-
-In the file, enter the following, replacing `<TOKEN>` with your respective token.
+```bat
+conda create -n spotify_surface python=3.10 pip -y
+conda activate spotify_surface
+python -m pip install -r requirements-lock.txt
+python spotify-surface-local.py
 ```
-SPOTIFY_REFRESH_TOKEN=<TOKEN>
-SPOTIFY_BASE64_TOKEN=<TOKEN>
-MUSIXMATCH_TOKEN=<TOKEN>
+
+## Build the EXE
+
+```bat
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name SpotifySurface --collect-all winsdk spotify-surface-local.py
 ```
-<br>
 
-#### Spotify Tokens
-Follow [this Youtube video](https://youtu.be/-FsFT6OwE1A?t=83) from 1:22 to 14:32.<br>
-You will only need to save 2 tokens from this video:
- * <strong>Spotify Refresh Token</strong> (14:25)
- * <strong>Spotify Base64 Token</strong> (10:50)
-<br><br>
+Output: `dist/SpotifySurface.exe`. The exact installed dependencies are listed in [requirements-lock.txt](requirements-lock.txt).
 
-#### Musixmatch Token
-You may remove the `MUSIXMATCH_TOKEN` variable from the `.env` file if you do not have a Musixmatch token.<br>
-Do not leave the variable unfilled.
+## Validation
 
-Keep in mind that the default token provided may not work 100% of the time and is likely rate limited.
+```bat
+python test-playback-clock.py
+python -m pip check
+```
 
-In order to get a new Musixmatch token, follow steps 1 - 5 with the guide [here](https://spicetify.app/docs/faq#sometimes-popup-lyrics-andor-lyrics-plus-seem-to-not-work).
-<br><br>
+Playback clock tests cover repeated snapshots, small timing errors, forward and backward seeks, pause/resume, and track resets. Spotify media-session access, LRCLIB requests, and EXE startup have been verified on the development machine. Broader Windows compatibility testing has not yet been performed.
 
----
+## Limitations and privacy
 
-## Acknowledgments and Credits
-* [`MxLRC` by fashni](https://github.com/fashni/MxLRC)
-* [Musixmatch](https://www.musixmatch.com/)
-<br>
+- Synced lyrics depend on LRCLIB coverage. When only plain lyrics are available, the app displays the first line; it does not generate timing information.
+- This app does not translate lyrics or transcribe audio.
+- Support targets the local Spotify desktop app. Browser playback, phones, and other playback devices are not guaranteed to work.
+- Windows timeline updates may be delayed. Different song recordings or lyric timestamps can still cause timing differences.
+- Track title, artist, album, and duration are sent to LRCLIB to find lyrics. Spotify account credentials are not read.
+- Playback controls from the original app are not included in this simplified local interface.
 
-## Developer
-This project was developed by [`PureAspiration`](https://github.com/PureAspiration).
-<br>
+## Track upstream changes
 
-## License
-Distributed under the MIT License. See [`LICENSE`](./LICENSE.md) for more information.
-<br><br>
+```bash
+git remote add upstream https://github.com/PureAspiration/SpotifySurface.git
+git fetch upstream
+```
+
+Skip the first command if `upstream` already exists. Review upstream changes before merging them.
+
+## License and acknowledgments
+
+Distributed under the [MIT License](LICENSE.md), retaining the original author's copyright notice.
+
+- Original project: [PureAspiration/SpotifySurface](https://github.com/PureAspiration/SpotifySurface)
+- Lyrics service: [LRCLIB](https://lrclib.net)
+- Windows media-session Python bindings: `winsdk`
