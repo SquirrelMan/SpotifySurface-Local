@@ -109,6 +109,10 @@ class LyricsWindow:
         self.root.geometry("620x330")
         self.root.configure(bg="#161616")
         self.root.attributes("-topmost", True)
+        self.root.overrideredirect(True)
+        self.root.attributes("-transparentcolor", "#161616")
+        self.root.minsize(250, 80)
+        self.dragOrigin: tuple[int, int, int, int] | None = None
         self.events: queue.Queue = queue.Queue()
         self.stopEvent = threading.Event()
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
@@ -117,20 +121,65 @@ class LyricsWindow:
         self.clock = PlaybackClock()
         self.lines: list[tuple[float, str]] = []
         self.timestamps: list[float] = []
-        self.title = tk.Label(self.root, text="請在 Spotify 桌面版播放歌曲", fg="#1ed760", bg="#161616", font=("Microsoft JhengHei", 15), wraplength=590)
+        self.settings = tk.Toplevel(self.root)
+        self.settings.title("歌詞設定")
+        self.settings.geometry("420x350")
+        self.settings.configure(bg="#161616")
+        self.settings.attributes("-topmost", True)
+        self.settings.withdraw()
+        self.settings.protocol("WM_DELETE_WINDOW", self.settings.withdraw)
+        self.title = tk.Label(self.settings, text="請在 Spotify 桌面版播放歌曲", fg="#1ed760", bg="#161616", font=("Microsoft JhengHei", 15), wraplength=390)
         self.title.pack(pady=15)
-        self.status = tk.Label(self.root, text="正在連接目前已登入的 Spotify…", fg="#aaaaaa", bg="#161616")
+        self.status = tk.Label(self.settings, text="正在連接目前已登入的 Spotify…", fg="#aaaaaa", bg="#161616", wraplength=390)
         self.status.pack()
         self.lyricFont = tkFont.Font(family="Microsoft JhengHei", size=40, weight="bold")
         self.current = tk.Label(self.root, text="等待播放", fg="white", bg="#161616", font=self.lyricFont)
         self.offset = tk.DoubleVar(value=0)
-        tk.Scale(self.root, from_=-5, to=5, resolution=0.1, orient="horizontal", variable=self.offset,
-                 label="字幕時間微調（秒）", bg="#161616", fg="white", highlightthickness=0).pack(side="bottom", fill="x", padx=20)
-        self.current.pack(fill="both", expand=True, padx=15, pady=10)
+        tk.Scale(self.settings, from_=-5, to=5, resolution=0.1, orient="horizontal", variable=self.offset,
+                 label="字幕時間微調（秒）", bg="#161616", fg="white", highlightthickness=0).pack(fill="x", padx=20)
+        self.root.update_idletasks()
+        for label, dimension, initial, minimum, maximum in [("字幕寬度", "width", 620, 250, 1600), ("字幕高度", "height", 330, 80, 600)]:
+            scale = tk.Scale(self.settings, from_=minimum, to=maximum, orient="horizontal", label=label,
+                             bg="#161616", fg="white", highlightthickness=0,
+                             command=lambda value, dimension=dimension: self.resizeWindow(dimension, value))
+            scale.set(initial)
+            scale.pack(fill="x", padx=20)
+        tk.Button(self.settings, text="關閉程式", command=self.close).pack(pady=10)
+        self.current.place(x=15, y=30, relwidth=1, width=-30, relheight=1, height=-40)
+        self.menuButton = tk.Button(self.root, text="⋯", command=self.toggleSettings, font=("Segoe UI", 12),
+                                    fg="#cccccc", bg="#252525", activebackground="#444444",
+                                    activeforeground="white", relief="flat", borderwidth=0, cursor="hand2")
+        self.menuButton.place(relx=1, x=-6, y=4, anchor="ne", width=26, height=22)
+        self.current.bind("<ButtonPress-1>", self.startDrag)
+        self.current.bind("<B1-Motion>", self.dragWindow)
         self.current.bind("<Configure>", self.fitLyricFont)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         threading.Thread(target=self.runMonitor, daemon=True).start()
         self.root.after(100, self.update)
+
+    def toggleSettings(self) -> None:
+        """將資訊與控制收在獨立設定視窗，保留字幕顯示空間。"""
+        if self.settings.state() == "withdrawn":
+            self.settings.deiconify()
+            self.settings.lift()
+        else:
+            self.settings.withdraw()
+
+    def resizeWindow(self, dimension: str, value: str) -> None:
+        """透過設定調整無邊框視窗大小。"""
+        width = int(float(value)) if dimension == "width" else self.root.winfo_width()
+        height = int(float(value)) if dimension == "height" else self.root.winfo_height()
+        self.root.geometry(f"{max(250, width)}x{max(80, height)}")
+
+    def startDrag(self, event: Any) -> None:
+        """記住滑鼠與視窗位置，讓無標題列字幕仍可移動。"""
+        self.dragOrigin = (event.x_root, event.y_root, self.root.winfo_x(), self.root.winfo_y())
+
+    def dragWindow(self, event: Any) -> None:
+        """拖曳歌詞文字即可移動字幕。"""
+        if self.dragOrigin:
+            mouseX, mouseY, windowX, windowY = self.dragOrigin
+            self.root.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}{windowX + event.x_root - mouseX:+d}{windowY + event.y_root - mouseY:+d}")
 
     def runMonitor(self) -> None:
         """背景執行媒體監聽。"""

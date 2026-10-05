@@ -6,6 +6,7 @@ __pycache__/
 build/
 dist/
 dist-updated/
+dist-v*/
 conda-info-section.md
 spotify-probe.py
 使用說明.md

@@ -33,8 +33,9 @@ Download the standalone Windows EXE from the [latest release](https://github.com
 1. Open Spotify desktop on Windows and play a song.
 2. Run `SpotifySurface.exe`.
 3. Resize the window to enlarge the lyric text. Adjust the timing slider if the lyrics are consistently early or late.
+   In v1.1.0, click the small **⋯** button in the upper-right corner to access track information, connection status, timing adjustment, window dimensions, and Quit. Drag the lyric text to move the overlay.
 
-The window stays on top. Running the packaged EXE does not require Python or conda.
+The window stays on top. The default overlay has a transparent background and no title bar, showing only the current lyric and the small settings button. Running the packaged EXE does not require Python or conda.
 
 ## Install from source
 
