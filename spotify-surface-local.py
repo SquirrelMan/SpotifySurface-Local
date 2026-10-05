@@ -113,6 +113,7 @@ class LyricsWindow:
         self.root.attributes("-transparentcolor", "#161616")
         self.root.minsize(250, 80)
         self.dragOrigin: tuple[int, int, int, int] | None = None
+        self.dragMoved = False
         self.events: queue.Queue = queue.Queue()
         self.stopEvent = threading.Event()
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
@@ -123,7 +124,7 @@ class LyricsWindow:
         self.timestamps: list[float] = []
         self.settings = tk.Toplevel(self.root)
         self.settings.title("歌詞設定")
-        self.settings.geometry("420x350")
+        self.settings.geometry("420x390")
         self.settings.configure(bg="#161616")
         self.settings.attributes("-topmost", True)
         self.settings.withdraw()
@@ -132,6 +133,10 @@ class LyricsWindow:
         self.title.pack(pady=15)
         self.status = tk.Label(self.settings, text="正在連接目前已登入的 Spotify…", fg="#aaaaaa", bg="#161616", wraplength=390)
         self.status.pack()
+        self.transparentBackground = tk.BooleanVar(value=True)
+        tk.Checkbutton(self.settings, text="透明背景（取消勾選顯示黑底）", variable=self.transparentBackground,
+                       command=self.applyBackground, bg="#161616", fg="white", selectcolor="#252525",
+                       activebackground="#161616", activeforeground="white").pack(pady=8)
         self.lyricFont = tkFont.Font(family="Microsoft JhengHei", size=40, weight="bold")
         self.current = tk.Label(self.root, text="等待播放", fg="white", bg="#161616", font=self.lyricFont)
         self.offset = tk.DoubleVar(value=0)
@@ -146,12 +151,17 @@ class LyricsWindow:
             scale.pack(fill="x", padx=20)
         tk.Button(self.settings, text="關閉程式", command=self.close).pack(pady=10)
         self.current.place(x=15, y=30, relwidth=1, width=-30, relheight=1, height=-40)
-        self.menuButton = tk.Button(self.root, text="⋯", command=self.toggleSettings, font=("Segoe UI", 12),
+        self.menuButton = tk.Button(self.root, text="⋯", font=("Segoe UI", 12),
                                     fg="#cccccc", bg="#252525", activebackground="#444444",
                                     activeforeground="white", relief="flat", borderwidth=0, cursor="hand2")
         self.menuButton.place(relx=1, x=-6, y=4, anchor="ne", width=26, height=22)
         self.current.bind("<ButtonPress-1>", self.startDrag)
         self.current.bind("<B1-Motion>", self.dragWindow)
+        self.current.bind("<ButtonRelease-1>", self.endDrag)
+        # NOTE: 色鍵透明區域會穿透滑鼠，右上角不透明按鈕提供可靠的拖曳入口。
+        self.menuButton.bind("<ButtonPress-1>", self.startDrag)
+        self.menuButton.bind("<B1-Motion>", self.dragWindow)
+        self.menuButton.bind("<ButtonRelease-1>", self.endDrag)
         self.current.bind("<Configure>", self.fitLyricFont)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         threading.Thread(target=self.runMonitor, daemon=True).start()
@@ -165,21 +175,40 @@ class LyricsWindow:
         else:
             self.settings.withdraw()
 
+    def applyBackground(self) -> None:
+        """允許使用者在透明字幕與完整可拖曳的黑底之間切換。"""
+        self.root.attributes("-transparentcolor", "#161616" if self.transparentBackground.get() else "")
+
     def resizeWindow(self, dimension: str, value: str) -> None:
         """透過設定調整無邊框視窗大小。"""
         width = int(float(value)) if dimension == "width" else self.root.winfo_width()
         height = int(float(value)) if dimension == "height" else self.root.winfo_height()
         self.root.geometry(f"{max(250, width)}x{max(80, height)}")
 
-    def startDrag(self, event: Any) -> None:
+    def startDrag(self, event: Any) -> str:
         """記住滑鼠與視窗位置，讓無標題列字幕仍可移動。"""
         self.dragOrigin = (event.x_root, event.y_root, self.root.winfo_x(), self.root.winfo_y())
+        self.dragMoved = False
+        event.widget.grab_set()
+        return "break"
 
-    def dragWindow(self, event: Any) -> None:
+    def dragWindow(self, event: Any) -> str:
         """拖曳歌詞文字即可移動字幕。"""
         if self.dragOrigin:
             mouseX, mouseY, windowX, windowY = self.dragOrigin
+            if max(abs(event.x_root - mouseX), abs(event.y_root - mouseY)) < 4 and not self.dragMoved:
+                return "break"
+            self.dragMoved = True
             self.root.geometry(f"{self.root.winfo_width()}x{self.root.winfo_height()}{windowX + event.x_root - mouseX:+d}{windowY + event.y_root - mouseY:+d}")
+        return "break"
+
+    def endDrag(self, event: Any) -> str:
+        """釋放滑鼠捕捉，區分設定按鈕的點擊與拖曳。"""
+        event.widget.grab_release()
+        if self.dragOrigin and not self.dragMoved and event.widget == self.menuButton:
+            self.toggleSettings()
+        self.dragOrigin = None
+        return "break"
 
     def runMonitor(self) -> None:
         """背景執行媒體監聽。"""
