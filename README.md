@@ -4,7 +4,7 @@ A token-free, always-on-top, single-line lyrics window for the Spotify desktop a
 
 ## Origin and upstream tracking
 
-This project is based on [PureAspiration/SpotifySurface](https://github.com/PureAspiration/SpotifySurface), starting from commit `a4195b976cbb852f5ea9d194d5466d1b1f20229f`. Credit for the original project goes to **PureAspiration**. The original source, Git history, and MIT license are retained. See [the original README](README-upstream.md).
+This project is based on [PureAspiration/SpotifySurface](https://github.com/PureAspiration/SpotifySurface). Credit for the original project goes to **PureAspiration**. The original source, Git history, and MIT license are retained. See [the original README](README-upstream.md).
 
 This is an independent adaptation, not an official upstream release. Upstream changes can be reviewed and merged manually; updates are not synchronized automatically.
 
