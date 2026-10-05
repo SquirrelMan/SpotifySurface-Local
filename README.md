@@ -28,6 +28,8 @@ The token-free entry point is `spotify-surface-local.py`. The original `main.py`
 
 ## Usage
 
+Download the standalone Windows EXE from the [latest release](https://github.com/SquirrelMan/SpotifySurface-Local/releases/latest).
+
 1. Open Spotify desktop on Windows and play a song.
 2. Run `SpotifySurface.exe`.
 3. Resize the window to enlarge the lyric text. Adjust the timing slider if the lyrics are consistently early or late.
