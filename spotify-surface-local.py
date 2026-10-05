@@ -6,11 +6,13 @@ import datetime
 import logging
 import queue
 import re
+import sys
 import threading
 import time
 import tkinter as tk
 import tkinter.font as tkFont
 from typing import Any
+from pathlib import Path
 
 import requests
 from winsdk.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as MediaManager
@@ -106,6 +108,10 @@ class LyricsWindow:
     def __init__(self) -> None:
         self.root = tk.Tk()
         self.root.title("SpotifySurface Local")
+        assetRoot = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+        iconPath = assetRoot / "assets" / "app-icon.ico"
+        if iconPath.is_file():
+            self.root.iconbitmap(str(iconPath))
         self.root.geometry("620x330")
         self.root.configure(bg="#161616")
         self.root.attributes("-topmost", True)
@@ -124,6 +130,8 @@ class LyricsWindow:
         self.timestamps: list[float] = []
         self.settings = tk.Toplevel(self.root)
         self.settings.title("Lyrics Settings")
+        if iconPath.is_file():
+            self.settings.iconbitmap(str(iconPath))
         self.settings.geometry("420x390")
         self.settings.configure(bg="#161616")
         self.settings.attributes("-topmost", True)

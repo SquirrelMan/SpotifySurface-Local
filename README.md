@@ -53,7 +53,7 @@ python spotify-surface-local.py
 ## Build the EXE
 
 ```bat
-python -m PyInstaller --noconfirm --clean --onefile --windowed --name SpotifySurface --collect-all winsdk spotify-surface-local.py
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name SpotifySurface --collect-all winsdk --icon assets/app-icon.ico --add-data "assets/app-icon.ico;assets" spotify-surface-local.py
 ```
 
 Output: `dist/SpotifySurface.exe`. The exact installed dependencies are listed in [requirements-lock.txt](requirements-lock.txt).
